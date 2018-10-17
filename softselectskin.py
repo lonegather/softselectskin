@@ -5,6 +5,25 @@ import maya.OpenMaya as om
 __all__ = ['soft_selection', 'show']
 
 
+main_window_flags = {
+    'title': 'Soft Select Skinning',
+    'widthHeight': [360, 640],
+    'maximizeButton': False,
+    'minimizeButton': False,
+    'sizeable': True,
+}
+
+
+falloff_radius_slider_flags = {
+    'label': 'Radius',
+    'field': True,
+    'minValue': 0.0,
+    'maxValue': 100.0,
+    'fieldMinValue': 0.0,
+    'fieldMaxValue': 100.0,
+}
+
+
 def soft_selection():
     selection = om.MSelectionList()
     rich_selection = om.MRichSelection()
@@ -30,28 +49,50 @@ def soft_selection():
 
 
 def show():
-    with pm.window(title='Soft Select Skinning') as win:
-        with pm.formLayout() as lyt:
-            btn1 = pm.button(label='One!')
-            btn2 = pm.button(label='Two!')
-            btn3 = pm.button(label='Three!')
+    if pm.window('softselectskin', exists=True):
+        pm.deleteUI('softselectskin')
+    with pm.window('softselectskin', **main_window_flags) as win:
+        with pm.formLayout() as main_layout:
+            with pm.frameLayout(label='Soft Selection') as soft_select_framelayout:
+                with pm.formLayout() as lyt:
+                    current_radius = pm.softSelect(q=True, softSelectDistance=True)
+                    current_curve = pm.softSelect(q=True, softSelectCurve=True)
+                    slider = pm.floatSliderGrp('sss_fd', value=current_radius, **falloff_radius_slider_flags)
+                    print slider
+                    curve = pm.gradientControlNoAttr(h=120, asString=current_curve)
+
+                    attach = {
+                        'e': True,
+                        'attachForm': [
+                            (slider, 'top', 5),
+                            (slider, 'left', 5),
+                            (slider, 'right', 20),
+                            (curve, 'left', 5),
+                            (curve, 'right', 5),
+                        ],
+                        'attachControl': [
+                            (curve, 'top', 5, slider),
+                        ]
+                    }
+
+                    pm.formLayout(lyt, **attach)
+
+            with pm.frameLayout(label='Skeletons') as skeleton_framelayout:
+                with pm.formLayout():
+                    pass
 
             attach = {
                 'e': True,
                 'attachForm': [
-                    (btn1, 'top', 5),
-                    (btn1, 'left', 5),
-                    (btn1, 'right', 5),
-                    (btn2, 'left', 5),
-                    (btn2, 'right', 5),
-                    (btn3, 'left', 5),
-                    (btn3, 'right', 5),
-                    (btn3, 'bottom', 5)
+                    (soft_select_framelayout, 'top', 5),
+                    (soft_select_framelayout, 'left', 5),
+                    (soft_select_framelayout, 'right', 5),
+                    (skeleton_framelayout, 'left', 5),
+                    (skeleton_framelayout, 'right', 5),
                 ],
                 'attachControl': [
-                    (btn2, 'top', 5, btn1),
-                    (btn3, 'top', 5, btn2)
+                    (skeleton_framelayout, 'top', 5, soft_select_framelayout),
                 ]
             }
 
-            pm.formLayout(lyt, **attach)
+            pm.formLayout(main_layout, **attach)

@@ -1,0 +1,116 @@
+proc updateSoftSelectFalseColorEnable()
+//
+//	Description:
+//		Update the soft select mode.
+//
+{
+	int $enabled = `softSelect -q -enableFalseColor` && `softSelect -q -softSelectEnabled`;
+
+	text -e -enable $enabled softSelectColorText;
+	gradientControlNoAttr -e -enable $enabled softSelectColorRamp;
+	colorSliderGrp -e -enable $enabled softSelectColorRampSlider;
+}
+
+proc updateSoftSelectEnable()
+//
+//	Description:
+//		Update the soft select mode.
+//
+{
+	int $enabled = `softSelect -q -softSelectEnabled`;
+
+	text -e -enable $enabled softSelectFalloffText;
+	text -e -enable $enabled softSelectFalloffPresetsText;
+	gridLayout -e -enable $enabled softSelectProfilePresetsGrid;
+	gradientControlNoAttr -e -enable $enabled softSelectFalloffRamp;
+	optionMenuGrp -e -enable $enabled softSelectCtrlFalloffMode;
+	optionMenuGrp -e -enable $enabled softSelectCtrlFalloffInterpolation;
+	checkBoxGrp -e -enable $enabled softSelectEnableFalseColorChkBox;
+	updateSoftSelectFalseColorEnable();
+	
+	if( `floatSliderGrp -exists softSelectCtrlFloatUVRadius`)
+		floatSliderGrp -e -enable $enabled softSelectCtrlFloatUVRadius;
+	if( `floatSliderGrp -exists softSelectCtrlFloatRadius`)
+		floatSliderGrp -e -enable $enabled softSelectCtrlFloatRadius;
+}
+
+proc setValues ( string $parent, int $forceFactorySettings ) 
+{
+	setParent $parent;
+	
+	// Enable/Disable
+	//
+	checkBoxGrp -e
+				-value1 `softSelect -q -softSelectEnabled`
+				-cc1 "softSelect -e -softSelectEnabled #1"
+				softSelectEnableChkBox;	
+
+	optionMenuGrp -e
+		-select (1 + `softSelect -q -softSelectFalloff`)
+		-cc "setSoftSelectFalloffMode( \"#1\")"
+		softSelectCtrlFalloffMode;
+
+	if( `floatSliderGrp -exists softSelectCtrlFloatRadius`)
+	{
+		floatSliderGrp -e
+			-value `softSelect -q -softSelectDistance`
+			-cc ( "softSelect -e -softSelectDistance #1" )
+			softSelectCtrlFloatRadius;
+	}
+
+	if( `floatSliderGrp -exists softSelectCtrlFloatUVRadius`)
+	{
+		floatSliderGrp -e
+			-value `softSelect -q -softSelectUVDistance`
+			-cc ( "softSelect -e -softSelectUVDistance #1" )
+			softSelectCtrlFloatUVRadius;
+	}
+
+	gradientControlNoAttr -e
+		 -asString `softSelect -q -softSelectCurve`
+		 -changeCommand "softSelect -e -softSelectCurve \"#1\""
+		 -currentKeyChanged ("softSelectCurveKeyChanged \"" + $parent + "\"")
+		softSelectFalloffRamp;
+
+	optionMenuGrp -e
+		-changeCommand ("setSoftSelectFalloffInterpolation( \"" + $parent + "\", \"#1\")")
+		softSelectCtrlFalloffInterpolation;
+
+	// False colour
+	//
+	checkBoxGrp -e
+				-value1 `softSelect -q -enableFalseColor`
+				-cc1 "softSelect -e -enableFalseColor #1"
+				softSelectEnableFalseColorChkBox;	
+				
+	gradientControlNoAttr -e
+		 -asString `softSelect -q -softSelectColorCurve`
+		 -changeCommand "softSelect -e -softSelectColorCurve \"#1\""
+		 -currentKeyChanged ("softSelectColorKeyChanged \"" + $parent + "\"")
+		softSelectColorRamp;
+
+	float $t[] = `gradientControlNoAttr -q -currentKeyColorValue softSelectColorRamp`;
+
+	colorSliderGrp -e
+			-changeCommand ("softSelectSetColorKey \"" + $parent + "\"")
+			-rgb $t[0] $t[1] $t[2]
+			softSelectColorRampSlider;
+
+	updateSoftSelectEnable();
+
+	if (`about -linux`) {
+		// Force a redraw on Linux 
+		evalDeferred( "gradientControlNoAttr -e -vis off softSelectFalloffRamp; gradientControlNoAttr -e -vis on softSelectFalloffRamp; ");
+		evalDeferred( "gradientControlNoAttr -e -vis off softSelectColorRamp; gradientControlNoAttr -e -vis on softSelectColorRamp; ");
+	}
+}
+
+global proc softSelectValues ( string $parent )
+{
+	setValues( $parent, 0);
+}
+
+global proc softSelectToolReset ( string $parent ) 
+{
+	setValues( $parent, 1);
+}
