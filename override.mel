@@ -103,6 +103,7 @@ proc setValues ( string $parent, int $forceFactorySettings )
 		evalDeferred( "gradientControlNoAttr -e -vis off softSelectFalloffRamp; gradientControlNoAttr -e -vis on softSelectFalloffRamp; ");
 		evalDeferred( "gradientControlNoAttr -e -vis off softSelectColorRamp; gradientControlNoAttr -e -vis on softSelectColorRamp; ");
 	}
+	
 }
 
 global proc softSelectValues ( string $parent )

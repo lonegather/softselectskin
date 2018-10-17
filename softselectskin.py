@@ -1,3 +1,4 @@
+import os
 import pymel.core as pm
 import maya.OpenMaya as om
 
@@ -22,6 +23,13 @@ falloff_radius_slider_flags = {
     'fieldMinValue': 0.0,
     'fieldMaxValue': 100.0,
 }
+
+
+try:
+    pm.condition("SoftSelectParamsChanged", state=True)
+except RuntimeError:
+    pass
+print os.path.dirname(__file__)
 
 
 def soft_selection():
@@ -52,9 +60,9 @@ def show():
     if pm.window('softselectskin', exists=True):
         pm.deleteUI('softselectskin')
     with pm.window('softselectskin', **main_window_flags) as win:
-        with pm.formLayout() as main_layout:
-            with pm.frameLayout(label='Soft Selection') as soft_select_framelayout:
-                with pm.formLayout() as lyt:
+        with pm.formLayout('sss_main_form') as main_layout:
+            with pm.frameLayout('sss_softselect_frame', label='Soft Selection') as soft_select_framelayout:
+                with pm.formLayout('sss_softselect_form') as lyt:
                     current_radius = pm.softSelect(q=True, softSelectDistance=True)
                     current_curve = pm.softSelect(q=True, softSelectCurve=True)
                     slider = pm.floatSliderGrp('sss_fd', value=current_radius, **falloff_radius_slider_flags)
