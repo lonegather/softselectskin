@@ -36,6 +36,11 @@ proc updateSoftSelectEnable()
 
 proc setValues ( string $parent, int $forceFactorySettings ) 
 {
+	//OVERRIDE START
+	int $current = !`isTrue SoftSelectParamsChanged`;
+	condition -e -state $current SoftSelectParamsChanged;
+	//OVERRIDE END
+
 	setParent $parent;
 	
 	// Enable/Disable
