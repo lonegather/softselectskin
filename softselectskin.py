@@ -25,21 +25,29 @@ skeleton_frame_flags = {
 }
 
 falloff_radius_slider_flags = {
-    'label': 'Radius',
+    'label': 'Falloff Radius: ',
     'field': True,
     'minValue': 0.0,
     'maxValue': 100.0,
     'fieldMinValue': 0.0,
     'fieldMaxValue': 100.0,
+    'columnWidth': [1, 100],
     'changeCommand': lambda d: pm.softSelect(e=True, softSelectDistance=d),
 }
 
+falloff_curve_display_flags = {
+    'label': 'Falloff Curve: ',
+    'width': 100,
+    'align': 'right',
+}
+
 falloff_curve_flags = {
-    'h': 120,
+    'height': 120,
     'changeCommand': lambda c: pm.softSelect(e=True, softSelectCurve=c),
 }
 
 skeleton_list_flags = {
+    'height': 120,
     'allowMultiSelection': False,
 }
 
@@ -89,27 +97,24 @@ def softselect_changed_callback_generator(slider, curve):
 def selection_changed_callback_generator(text_list):
 
     def callback():
-        print 'testing...'
         try:
             current = pm.ls(sl=True)
+            current_obj = current[0].name().split('.')[0]
+            if pm.objectType(current_obj, isType='transform'):
+                current_obj = pm.listRelatives(current_obj)[0]
+            skin_cluster = pm.listConnections(current_obj, d=False, type="skinCluster")[0]
         except IndexError:
-            print 'None'
+            text_list.removeAll()
             return
-        current_obj = current[0].name().split('.')[0]
-        if not pm.objectType(current_obj, isType='transform'):
-            print 'None'
-            return
-        current_shape = pm.listRelatives(current_obj)[0]
-        if not current_shape:
-            print 'None'
-            return
-        skin_cluster = pm.listConnections(current_shape, d=False, type="skinCluster")[0]
-        print pm.skinCluster(skin_cluster, q=True, influence=True)
+        text_list.removeAll()
+        for joint in pm.skinCluster(skin_cluster, q=True, influence=True):
+            text_list.append(joint)
 
     return callback
 
 
 def show():
+
     if pm.window('softselectskin', exists=True):
         pm.deleteUI('softselectskin')
     with pm.window('softselectskin', **main_window_flags) as win:
@@ -119,7 +124,27 @@ def show():
                     current_radius = pm.softSelect(q=True, softSelectDistance=True)
                     current_curve = pm.softSelect(q=True, softSelectCurve=True)
                     slider = pm.floatSliderGrp('fsg_radius', value=current_radius, **falloff_radius_slider_flags)
-                    curve = pm.gradientControlNoAttr('gc_curve', asString=current_curve, **falloff_curve_flags)
+                    with pm.formLayout('curve_formlayout') as curve_formlayout:
+                        curve_display = pm.text('curve_display', **falloff_curve_display_flags)
+                        curve = pm.gradientControlNoAttr('gc_curve', asString=current_curve, **falloff_curve_flags)
+
+                        attach = {
+                            'e': True,
+                            'attachForm': [
+                                (curve_display, 'top', 0),
+                                (curve_display, 'bottom', 0),
+                                (curve_display, 'left', 0),
+                                (curve, 'top', 0),
+                                (curve, 'bottom', 0),
+                                (curve, 'right', 0),
+                            ],
+                            'attachControl': [
+                                (curve, 'left', 0, curve_display),
+                            ]
+                        }
+
+                        pm.formLayout(curve_formlayout, **attach)
+
                     callback = softselect_changed_callback_generator(slider, curve)
                     pm.scriptJob(conditionChange=["SoftSelectParamsChanged", callback], parent=win)
 
@@ -128,12 +153,12 @@ def show():
                         'attachForm': [
                             (slider, 'top', 5),
                             (slider, 'left', 5),
-                            (slider, 'right', 20),
-                            (curve, 'left', 5),
-                            (curve, 'right', 5),
+                            (slider, 'right', 5),
+                            (curve_formlayout, 'left', 5),
+                            (curve_formlayout, 'right', 5),
                         ],
                         'attachControl': [
-                            (curve, 'top', 5, slider),
+                            (curve_formlayout, 'top', 5, slider),
                         ]
                     }
 
