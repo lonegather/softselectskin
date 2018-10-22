@@ -1,3 +1,4 @@
+import os
 import pymel.core as pm
 import maya.OpenMaya as om
 import maya.OpenMayaUI as omui
@@ -111,6 +112,8 @@ def selection_changed_callback_generator(text_list):
 
 
 def show():
+
+    pm.loadPlugin('%s/sss-plug-ins.py' % os.path.dirname(__file__), quiet=True)
 
     if pm.window('softselectskin', exists=True):
         pm.deleteUI('softselectskin')
