@@ -1,6 +1,6 @@
-import os
 import pymel.core as pm
 import maya.OpenMaya as om
+import maya.OpenMayaUI as omui
 
 
 __all__ = ['soft_selection', 'show']
@@ -52,13 +52,6 @@ skeleton_list_flags = {
 }
 
 
-try:
-    pm.condition("SoftSelectParamsChanged", state=True)
-except RuntimeError:
-    pass
-pm.mel.eval('source "%s/override.mel";' % os.path.dirname(__file__).replace('\\', '/'))
-
-
 def soft_selection():
     selection = om.MSelectionList()
     rich_selection = om.MRichSelection()
@@ -85,11 +78,15 @@ def soft_selection():
 
 def softselect_changed_callback_generator(slider, curve):
 
-    def callback():
+    def callback(cmd, _):
+        if not (cmd.count('softSelect ') and pm.window('softselectskin', exists=True)): return
         current_radius = pm.softSelect(q=True, softSelectDistance=True)
         current_curve = pm.softSelect(q=True, softSelectCurve=True)
-        pm.floatSliderGrp(slider, e=True, value=current_radius)
-        pm.gradientControlNoAttr(curve, e=True, asString=current_curve)
+        try:
+            pm.floatSliderGrp(slider, e=True, value=current_radius)
+            pm.gradientControlNoAttr(curve, e=True, asString=current_curve)
+        except NameError:
+            pass
 
     return callback
 
@@ -146,7 +143,7 @@ def show():
                         pm.formLayout(curve_formlayout, **attach)
 
                     callback = softselect_changed_callback_generator(slider, curve)
-                    pm.scriptJob(conditionChange=["SoftSelectParamsChanged", callback], parent=win)
+                    callback_id = om.MCommandMessage.addCommandCallback(callback)
 
                     attach = {
                         'e': True,
@@ -196,3 +193,5 @@ def show():
             }
 
             pm.formLayout(main_layout, **attach)
+
+    omui.MUiMessage.addUiDeletedCallback(win, lambda *_: om.MMessage.removeCallback(callback_id))
